@@ -102,7 +102,7 @@ def _annotate_and_decorate_axis(ax,
     ax.set_xticklabels(xticklabels)
   if yticks is not None:
     ax.set_yticks(yticks)
-  ax.grid(True, alpha=grid_alpha)
+  # ax.grid(True, alpha=grid_alpha)
   ax = _decorate_axis(ax, wrect=wrect, hrect=hrect, ticklabelsize=ticklabelsize)
   if legend:
     ax.legend(fontsize=legendsize)
@@ -122,7 +122,6 @@ def plot_performance_profiles(performance_profiles,
                               yticks=None,
                               xlabel=r'Normalized Score ($\tau$)',
                               ylabel=r'Fraction of runs with score $> \tau$',
-                              linestyles=None,
                               **kwargs):
   """Plots performance profiles with stratified confidence intervals.
 
@@ -149,8 +148,6 @@ def plot_performance_profiles(performance_profiles,
       to `[0, 0.25, 0.5, 0.75, 1.0]`.
     xlabel: Label for the x-axis.
     ylabel: Label for the y-axis.
-    linestyles: Maps each method to a linestyle. If None, then the 'solid'
-      linestyle is used for all methods.
     **kwargs: Arbitrary keyword arguments for annotating and decorating the
       figure. For valid arguments, refer to `_annotate_and_decorate_axis`.
 
@@ -162,12 +159,8 @@ def plot_performance_profiles(performance_profiles,
     _, ax = plt.subplots(figsize=figsize)
 
   if colors is None:
-    keys = performance_profiles.keys()
-    color_palette = sns.color_palette(color_palette, n_colors=len(keys))
-    colors = dict(zip(list(keys), color_palette))
-
-  if linestyles is None:
-    linestyles = {key: 'solid' for key in performance_profiles.keys()}
+    keys, colors = performance_profiles.keys(), sns.color_palette(color_palette)
+    colors = dict(zip(list(keys), colors))
 
   if use_non_linear_scaling:
     tau_list, xticks, xticklabels = _non_linear_scaling(performance_profiles,
@@ -180,7 +173,6 @@ def plot_performance_profiles(performance_profiles,
         tau_list,
         profile,
         color=colors[method],
-        linestyle=linestyles[method],
         linewidth=kwargs.pop('linewidth', 2.0),
         label=method)
     if performance_profile_cis is not None:
@@ -247,13 +239,12 @@ def plot_interval_estimates(point_estimates,
   figsize = (subfigure_width * num_metrics, row_height * len(algorithms))
   fig, axes = plt.subplots(nrows=1, ncols=num_metrics, figsize=figsize)
   if colors is None:
-    color_palette = sns.color_palette(color_palette, n_colors=len(algorithms))
-    colors = dict(zip(algorithms, color_palette))
+    colors = dict(zip(algorithms, sns.color_palette(color_palette)))
   h = kwargs.pop('interval_height', 0.6)
 
   for idx, metric_name in enumerate(metric_names):
     for alg_idx, algorithm in enumerate(algorithms):
-      ax = axes[idx] if num_metrics > 1 else axes
+      ax = axes[idx]
       # Plot interval estimates.
       lower, upper = interval_estimates[algorithm][:, idx]
       ax.barh(
@@ -293,7 +284,6 @@ def plot_sample_efficiency_curve(frames,
                                  point_estimates,
                                  interval_estimates,
                                  algorithms,
-                                 colors=None,
                                  color_palette='colorblind',
                                  figsize=(7, 5),
                                  xlabel=r'Number of Frames (in millions)',
@@ -302,53 +292,25 @@ def plot_sample_efficiency_curve(frames,
                                  labelsize='xx-large',
                                  ticklabelsize='xx-large',
                                  **kwargs):
-  """Plots an aggregate metric with CIs as a function of environment frames.
-
-  Args:
-    frames: Array or list containing environment frames to mark on the x-axis.
-    point_estimates: Dictionary mapping algorithm to a list or array of point
-      estimates of the metric corresponding to the values in `frames`.
-    interval_estimates: Dictionary mapping algorithms to interval estimates
-      corresponding to the `point_estimates`. Typically, consists of stratified
-      bootstrap CIs.
-    algorithms: List of methods used for plotting. If None, defaults to all the
-      keys in `point_estimates`.
-    colors: Dictionary that maps each algorithm to a color. If None, then this
-      mapping is created based on `color_palette`.
-    color_palette: `seaborn.color_palette` object for mapping each method to a
-      color.
-    figsize: Size of the figure passed to `matplotlib.subplots`. Only used when
-      `ax` is None.
-    xlabel: Label for the x-axis.
-    ylabel: Label for the y-axis.
-    ax: `matplotlib.axes` object.
-    labelsize: Font size of the x-axis label.
-    ticklabelsize: Font size of the ticks.
-    **kwargs: Arbitrary keyword arguments.
-
-  Returns:
-    `axes.Axes` object containing the plot.
-  """
+  """Plots an aggregate metric with CIs as a function of environment frames."""
+  colors = sns.color_palette(color_palette)
   if ax is None:
     _, ax = plt.subplots(figsize=figsize)
   if algorithms is None:
     algorithms = list(point_estimates.keys())
-  if colors is None:
-    color_palette = sns.color_palette(color_palette, n_colors=len(algorithms))
-    colors = dict(zip(algorithms, color_palette))
 
-  for algorithm in algorithms:
+  for idx, algorithm in enumerate(algorithms):
     metric_values = point_estimates[algorithm]
     lower, upper = interval_estimates[algorithm]
     ax.plot(
         frames,
         metric_values,
-        color=colors[algorithm],
-        marker=kwargs.pop('marker', 'o'),
+        color=colors[idx],
+        # marker=kwargs.pop('marker', 'o'),
         linewidth=kwargs.pop('linewidth', 2),
         label=algorithm)
     ax.fill_between(
-        frames, y1=lower, y2=upper, color=colors[algorithm], alpha=0.2)
+        frames, y1=lower, y2=upper, color=colors[idx], alpha=0.2)
 
   return _annotate_and_decorate_axis(
       ax,
@@ -387,8 +349,8 @@ def plot_probability_of_improvement(
     ax: `matplotlib.axes` object.
     figsize: Size of the figure passed to `matplotlib.subplots`. Only used when
       `ax` is None.
-    colors: Maps each algorithm pair id to a color. If None, then this mapping
-      is created based on `color_palette`.
+    colors: Maps each algopair name to a color. If None, then this mapping is
+      created based on `color_palette`.
     color_palette: `seaborn.color_palette` object. Used when `colors` is None.
     alpha: Changes the transparency of the shaded regions corresponding to the
       confidence intervals.
@@ -407,8 +369,7 @@ def plot_probability_of_improvement(
   if ax is None:
     _, ax = plt.subplots(figsize=figsize)
   if not colors:
-    colors = sns.color_palette(
-        color_palette, n_colors=len(probability_estimates))
+    colors = sns.color_palette(color_palette)
   h = kwargs.pop('interval_height', 0.6)
   wrect = kwargs.pop('wrect', 5)
   ticklabelsize = kwargs.pop('ticklabelsize', 'x-large')
