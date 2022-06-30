@@ -82,14 +82,14 @@ def _decorate_axis(ax, wrect=10, hrect=10, ticklabelsize='large'):
 
 
 def _annotate_and_decorate_axis(ax,
-                                labelsize='x-large',
-                                ticklabelsize='x-large',
+                                labelsize='xx-large',
+                                ticklabelsize='xx-large',
                                 xticks=None,
                                 xticklabels=None,
                                 yticks=None,
                                 legend=False,
                                 grid_alpha=0.2,
-                                legendsize='x-large',
+                                legendsize='xx-large',
                                 xlabel='',
                                 ylabel='',
                                 wrect=10,
@@ -234,7 +234,7 @@ def plot_interval_estimates(point_estimates,
   """
 
   if algorithms is None:
-    algorithms = point_estimates.keys()
+    algorithms = list(point_estimates.keys())
   num_metrics = len(point_estimates[algorithms[0]])
   figsize = (subfigure_width * num_metrics, row_height * len(algorithms))
   fig, axes = plt.subplots(nrows=1, ncols=num_metrics, figsize=figsize)
