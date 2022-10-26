@@ -76,8 +76,8 @@ def _decorate_axis(ax, wrect=10, hrect=10, ticklabelsize='large'):
   ax.spines['bottom'].set_linewidth(2)
   # Deal with ticks and the blank space at the origin
   ax.tick_params(length=0.1, width=0.1, labelsize=ticklabelsize)
-  ax.spines['left'].set_position(('outward', hrect))
-  ax.spines['bottom'].set_position(('outward', wrect))
+  # ax.spines['left'].set_position(('outward', hrect))
+  # ax.spines['bottom'].set_position(('outward', wrect))
   return ax
 
 
@@ -201,7 +201,7 @@ def plot_interval_estimates(point_estimates,
                             color_palette='colorblind',
                             max_ticks=4,
                             subfigure_width=3.4,
-                            row_height=0.37,
+                            row_height=0.05,
                             xlabel_y_coordinate=-0.1,
                             xlabel='Normalized Score',
                             **kwargs):
@@ -236,15 +236,18 @@ def plot_interval_estimates(point_estimates,
   if algorithms is None:
     algorithms = list(point_estimates.keys())
   num_metrics = len(point_estimates[algorithms[0]])
-  figsize = (subfigure_width * num_metrics, row_height * len(algorithms))
-  fig, axes = plt.subplots(nrows=1, ncols=num_metrics, figsize=figsize)
+  # figsize = (subfigure_width * num_metrics, row_height * len(algorithms))
+  fig, axes = plt.subplots(nrows=1, ncols=num_metrics)
   if colors is None:
     colors = dict(zip(algorithms, sns.color_palette(color_palette)))
   h = kwargs.pop('interval_height', 0.6)
 
   for idx, metric_name in enumerate(metric_names):
     for alg_idx, algorithm in enumerate(algorithms):
-      ax = axes[idx]
+      if isinstance(axes, np.ndarray):
+        ax = axes[idx]
+      else:
+        ax = axes
       # Plot interval estimates.
       lower, upper = interval_estimates[algorithm][:, idx]
       ax.barh(
@@ -276,7 +279,6 @@ def plot_interval_estimates(point_estimates,
     ax.spines['left'].set_visible(False)
     ax.grid(True, axis='x', alpha=0.25)
   fig.text(0.4, xlabel_y_coordinate, xlabel, ha='center', fontsize='xx-large')
-  plt.subplots_adjust(wspace=kwargs.pop('wspace', 0.11), left=0.0)
   return fig, axes
 
 
@@ -284,6 +286,7 @@ def plot_sample_efficiency_curve(frames,
                                  point_estimates,
                                  interval_estimates,
                                  algorithms,
+                                 custom_color=None,
                                  color_palette='colorblind',
                                  figsize=(7, 5),
                                  xlabel=r'Number of Frames (in millions)',
@@ -293,7 +296,10 @@ def plot_sample_efficiency_curve(frames,
                                  ticklabelsize='xx-large',
                                  **kwargs):
   """Plots an aggregate metric with CIs as a function of environment frames."""
-  colors = sns.color_palette(color_palette)
+  if custom_color is not None:
+      colors = custom_color
+  else:
+      colors = sns.color_palette(color_palette)
   if ax is None:
     _, ax = plt.subplots(figsize=figsize)
   if algorithms is None:
